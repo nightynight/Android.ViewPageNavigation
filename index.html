@@ -19,360 +19,460 @@
     </section>
 
     <section class="main-content">
-      <p>本文参照Android官方教程，笔者在学习时遇到一些问题，而且官方教程有些地方说的不太明白，所以进行了整理。</p>
+      <h3>
+<a id="使用viewpagerfragmentlistview模仿网易新闻客户端首页切换效果" class="anchor" href="#%E4%BD%BF%E7%94%A8viewpagerfragmentlistview%E6%A8%A1%E4%BB%BF%E7%BD%91%E6%98%93%E6%96%B0%E9%97%BB%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%A6%96%E9%A1%B5%E5%88%87%E6%8D%A2%E6%95%88%E6%9E%9C" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>使用ViewPager+Fragment+ListView模仿网易新闻客户端首页切换效果。</h3>
 
-<p>Android的内置搜索功能，能够在app中方便地为所有用户提供一个统一的搜索体验。
-从Android 3.0开始，在action bar中使用SearchView作为item，是在你的app中提供搜索的一种更好方法。像其他所有在action bar中的item一样，你可以定义SearchView在有足够空间的时候总是显示，或设置为一个折叠操作(collapsible action),一开始SearchView作为一个图标显示，当用户点击图标时再显示搜索框占据整个action bar。</p>
+<h4>
+<a id="先来看看activity_main布局文件" class="anchor" href="#%E5%85%88%E6%9D%A5%E7%9C%8B%E7%9C%8Bactivity_main%E5%B8%83%E5%B1%80%E6%96%87%E4%BB%B6" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>先来看看activity_main布局文件</h4>
 
-<h3>
-<a id="添加search-view到action-bar中" class="anchor" href="#%E6%B7%BB%E5%8A%A0search-view%E5%88%B0action-bar%E4%B8%AD" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>添加Search View到action bar中</h3>
+<pre><code>&lt;RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" &gt;
+    &lt;LinearLayout
+        android:id="@+id/head"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"&gt;
+        &lt;!--Tab由HorizontalScrollView和RadioGroup实现--&gt;
+        &lt;HorizontalScrollView
+            android:id="@+id/channelScrollView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:scrollbars="none"&gt;
+            &lt;RadioGroup
+                android:id="@+id/channelRadioGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"&gt;
+            &lt;/RadioGroup&gt;
+        &lt;/HorizontalScrollView&gt;
+        &lt;Button
+            android:id="@+id/allCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="10sp"
+            android:layout_margin="0dp"
+            android:text="所有分类"/&gt;
+    &lt;/LinearLayout&gt;
+    &lt;android.support.v4.view.ViewPager
+        android:id="@+id/newsListViewPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/head"
+        android:layout_weight="1"&gt;
+    &lt;/android.support.v4.view.ViewPager&gt;
+    &lt;!--下面的LinearLayout用来放所有分类，默认是隐藏的--&gt;
+    &lt;LinearLayout
+        android:id="@+id/allCategoryLayout"
+        android:layout_below="@+id/head"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#ffffff"
+        android:visibility="gone"&gt;
+        &lt;!--所有分类由Button填充，用GridView实现--&gt;
+        &lt;GridView xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/gridview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:columnWidth="90dp"
+            android:numColumns="auto_fit"
+            android:verticalSpacing="10dp"
+            android:horizontalSpacing="10dp"
+            android:stretchMode="columnWidth"
+            android:gravity="center"&gt;
+        &lt;/GridView&gt;
+    &lt;/LinearLayout&gt;
+&lt;/RelativeLayout&gt;
+</code></pre>
 
-<p>为了在action bar中添加SearchView，在你的工程目录res/menu/中创建一个名为options_menu.xml的文件，再把下列代码添加到文件中。这段代码定义了如何创建search item，比如使用的图标和item的标题。collapseActionView属性允许你的SearchView占据整个action bar，在不使用的时候折叠成普通的action bar item。由于在手持设备中action bar的空间有限，建议使用collapsibleActionView属性来提供更好的用户体验。</p>
+<h4>
+<a id="再来看看其他布局文件" class="anchor" href="#%E5%86%8D%E6%9D%A5%E7%9C%8B%E7%9C%8B%E5%85%B6%E4%BB%96%E5%B8%83%E5%B1%80%E6%96%87%E4%BB%B6" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>再来看看其他布局文件</h4>
+
+<p>tab_rb.xml：定义RadioGroup中RadioButton怎么显示</p>
 
 <pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:searchDemo="http://schemas.android.com/apk/res-auto"&gt;
-    &lt;item android:id="@+id/search"
-        android:title="@string/search_title"
-        android:icon="@drawable/ic_search"
-        searchDemo:showAsAction="collapseActionView|ifRoom"
-        searchDemo:actionViewClass="android.widget.SearchView" /&gt;
-&lt;/menu&gt;
+&lt;RadioButton xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:paddingLeft="15dp"
+                android:background="@drawable/tab_selector"
+                android:paddingRight="15dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:button="@null" /&gt;
+    &lt;!--android:background="@drawable/tab_selector"会读取tab_selector.xml文件，控制RadioButton的背景显示--&gt;
+    &lt;!--android:button="@null"设置RadioButton前面的小圆圈不显示，只显示文字--&gt;
 </code></pre>
 
-<p>Note:如果你的menu items已经有一个XML文件，你可以只把元素添加入文件。
-要在action bar中显示SearchView，在你的activity中onCreateOptionsMenu())方法内填充XML菜单资源(res/menu/options_menu.xml):</p>
-
-<pre><code>@Override
-public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.options_menu, menu);
-
-    return true;
-}
-</code></pre>
-
-<p>如果你立即运行你的app，SearchView就会显示在你app的action bar中，但还无法使用。你现在需要定义SearchView如何运行。</p>
-
-<h3>
-<a id="创建一个检索配置" class="anchor" href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%A3%80%E7%B4%A2%E9%85%8D%E7%BD%AE" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>创建一个检索配置</h3>
-
-<p>检索配置(searchable configuration)在 res/xml/searchable.xml文件中定义了SearchView如何运行。检索配置中至少要包含一个android:label属性，与Android manifest中的或android:label属性值相同。但我们还是建议添加android:hint属性来告诉用户应该在搜索框中输入什么内容:</p>
+<p>channelLayout.xml：定义每个分类下新闻列表怎么显示</p>
 
 <pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
-&lt;searchable xmlns:android="http://schemas.android.com/apk/res/android"
-    android:hint="@string/search_hint"
-    android:label="@string/app_name" /&gt;
-</code></pre>
-
-<p>Note:这里的hint和label不要使用字节字符串。
-在MainActivity中输入搜索条件，我们还需要一个Activity来显示搜索结果，创建一个名为SearchResultsActivity的Activity，然后在manifest中进行相关配置。
-在MainActivity中配置要打开哪个Activity：</p>
-
-<pre><code>&lt;activity android:name=".MainActivity"&gt;
-    &lt;intent-filter&gt;
-        &lt;action android:name="android.intent.action.MAIN" /&gt;
-
-        &lt;category android:name="android.intent.category.LAUNCHER" /&gt;
-    &lt;/intent-filter&gt;
-    &lt;meta-data
-        android:name="android.app.default_searchable"
-        android:value=".SearchResultsActivity" /&gt;
-&lt;/activity&gt;
-</code></pre>
-
-<p>在SearchResultsActivity中加入如下代码：</p>
-
-<pre><code>&lt;meta-data
-    android:name="android.app.searchable"
-    android:resource="@xml/searchable" /&gt;
-</code></pre>
-
-<p>在你之前创建的onCreateOptionsMenu())方法中，调用setSearchableInfo(SearchableInfo))把SearchView和检索配置关联在一起:</p>
-
-<pre><code>@Override
-public boolean onCreateOptionsMenu(Menu menu) {
-    MenuInflater inflater = getMenuInflater();
-    inflater.inflate(R.menu.options_menu, menu);
-
-    // 关联检索配置和SearchView
-    SearchManager searchManager =
-            (SearchManager) getSystemService(Context.SEARCH_SERVICE);
-    SearchView searchView =
-            (SearchView) menu.findItem(R.id.search).getActionView();
-    searchView.setSearchableInfo(
-            searchManager.getSearchableInfo(getComponentName()));
-
-    return true;
-}
-</code></pre>
-
-<p>检索配置与SearchView正确关联后，当用户提交一个搜索请求时，SearchView会以ACTION_SEARCH intent启动一个activity，这里会启动SearchResultsActivity。
-在你的检索activity中，通过在onCreate())方法中检查ACTION_SEARCH intent来处理它。</p>
-
-<pre><code>protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    setContentView(R.layout.search_result);
-    handleIntent(getIntent());
-}
-
-@Override
-protected void onNewIntent(Intent intent) {
-    handleIntent(intent);
-}
-
-private void handleIntent(Intent intent) {
-
-    if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-        String query = intent.getStringExtra(SearchManager.QUERY);
-        //通过某种方法，根据请求检索你的数据
-        Log.i(AppConstants.DEBUG_TAG,"-------输入的搜索关键字为："+query);
-    }
-}
-</code></pre>
-
-<p>如果你现在运行你的app，输入搜索关键字，确定后就会启动SearchResultsActivity，SearchResultsActivity能获取到你的查询条件。</p>
-
-<h3>
-<a id="下面向你展示如何创建一个健壮的可以提供全文搜索的sqlite虚拟表并从一个每行有一组单词-解释对的文件中将数据填入作为数据源" class="anchor" href="#%E4%B8%8B%E9%9D%A2%E5%90%91%E4%BD%A0%E5%B1%95%E7%A4%BA%E5%A6%82%E4%BD%95%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E5%81%A5%E5%A3%AE%E7%9A%84%E5%8F%AF%E4%BB%A5%E6%8F%90%E4%BE%9B%E5%85%A8%E6%96%87%E6%90%9C%E7%B4%A2%E7%9A%84sqlite%E8%99%9A%E6%8B%9F%E8%A1%A8%E5%B9%B6%E4%BB%8E%E4%B8%80%E4%B8%AA%E6%AF%8F%E8%A1%8C%E6%9C%89%E4%B8%80%E7%BB%84%E5%8D%95%E8%AF%8D-%E8%A7%A3%E9%87%8A%E5%AF%B9%E7%9A%84%E6%96%87%E4%BB%B6%E4%B8%AD%E5%B0%86%E6%95%B0%E6%8D%AE%E5%A1%AB%E5%85%A5%E4%BD%9C%E4%B8%BA%E6%95%B0%E6%8D%AE%E6%BA%90" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>下面向你展示如何创建一个健壮的可以提供全文搜索的SQLite虚拟表。并从一个每行有一组单词-解释对的文件中将数据填入，作为数据源。</h3>
-
-<p>向新疆一个实体类：Vocabulary，有两个字段——word和definition。
-这里封装了一个工具类：</p>
-
-<pre><code>/**
- * Created by chenchao on 16/8/18.
- * 该工具类通过解析res/raw下的txt文件，创建一个虚拟表，并提供查询方法
- * 虚拟表与SQLite表的运行方式类似，但虚拟表是通过回调来向内存中的对象进行读取和写入
- * 提供两个查询方法，分别返回一个Vocabulary对象列表和一个Vocabulary对象
- */
-public class DatabaseTable {
-    private static final String TAG = "DictionaryDatabase";
-
-    //字典的表中将要包含的列名
-    public static final String COL_WORD = "WORD";
-    public static final String COL_DEFINITION = "DEFINITION";
-
-    private static final String DATABASE_NAME = "DICTIONARY";   //数据库名
-    private static final String FTS_VIRTUAL_TABLE = "FTS";  //表名
-    private static final int DATABASE_VERSION = 1;
-
-    private final DatabaseOpenHelper mDatabaseOpenHelper;
-
-    public DatabaseTable(Context context) {
-        mDatabaseOpenHelper = new DatabaseOpenHelper(context);
-    }
-
-    private static class DatabaseOpenHelper extends SQLiteOpenHelper {
-
-        private final Context mHelperContext;
-        private SQLiteDatabase mDatabase;
-
-        //创建虚拟表的SQL语句
-        private static final String FTS_TABLE_CREATE =
-                "CREATE VIRTUAL TABLE " + FTS_VIRTUAL_TABLE +
-                        " USING fts3 (" +
-                        COL_WORD + ", " +
-                        COL_DEFINITION + ")";
-
-        DatabaseOpenHelper(Context context) {
-            super(context, DATABASE_NAME, null, DATABASE_VERSION);
-            mHelperContext = context;
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            mDatabase = db;
-            mDatabase.execSQL(FTS_TABLE_CREATE);
-            loadDictionary();
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            Log.w(TAG, "Upgrading database from version " + oldVersion + " to "
-                    + newVersion + ", which will destroy all old data");
-            db.execSQL("DROP TABLE IF EXISTS " + FTS_VIRTUAL_TABLE);
-            onCreate(db);
-        }
-
-
-        //下面的代码会向你展示如何读取一个内容为单词和解释的文本文件(位于res/raw/definitions.txt)，如何解析文件与如何将文件中的数据按行插入虚拟表中。
-        //为防止UI锁死这些操作会在另一条线程中执行。
-        private void loadDictionary() {
-            new Thread(new Runnable() {
-                public void run() {
-                    try {
-                        loadWords();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }).start();
-        }
-
-        /**
-         * 解析txt文件中的内容，并将解析后的单词记录添加到虚拟表中
-         * @throws IOException
-         */
-        private void loadWords() throws IOException {
-            final Resources resources = mHelperContext.getResources();
-            InputStream inputStream = resources.openRawResource(R.raw.definitions);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-            try {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] strings = TextUtils.split(line, "-");
-                    long id = addWord(strings[0].trim(), strings[1].trim());
-                    if (id &lt; 0) {
-                        Log.e(TAG, "unable to add word: " + strings[0].trim());
-                    }
-                }
-            } finally {
-                reader.close();
-            }
-        }
-
-        /**
-         * 添加单词到虚拟表中
-         * @param word
-         * @param definition
-         * @return
-         */
-        private long addWord(String word, String definition) {
-            ContentValues initialValues = new ContentValues();
-            initialValues.put(COL_WORD, word);
-            initialValues.put(COL_DEFINITION, definition);
-
-            return mDatabase.insert(FTS_VIRTUAL_TABLE, null, initialValues);
-        }
-    }
-
-    /**
-     * 模糊查询，使用头匹配，用来提供一个list,最多只取10条数据
-     * @param query 查询关键字
-     * @return List&lt;Vocabulary&gt;
-     */
-    public List&lt;Vocabulary&gt; getWordsMatches(String query) {
-        List&lt;Vocabulary&gt; list=new ArrayList&lt;Vocabulary&gt;();
-
-        SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
-        builder.setTables(FTS_VIRTUAL_TABLE);
-
-        SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-        String selection = COL_WORD + " MATCH ?";
-        String[] selectionArgs = new String[] {query+"*"};
-        String[] columns=new String[]{COL_WORD,COL_DEFINITION};
-
-        Cursor cursor = builder.query(db, columns, selection, selectionArgs, null, null, null);
-        Vocabulary vocabulary;
-        int count=0;
-        //最多只取10条数据
-        while(cursor.moveToNext() &amp;&amp; count &lt; 10){
-            String word = cursor.getString(cursor.getColumnIndex("WORD"));
-            String definition = cursor.getString(cursor.getColumnIndex("DEFINITION"));
-            vocabulary=new Vocabulary(word,definition);
-            list.add(vocabulary);
-            count++;
-        }
-        return list;
-    }
-
-    /**
-     * 精确查询，根据查询条件返回一个Vocabulary对象
-     * @param query 查询关键字
-     * @return Vocabulary
-     */
-    public Vocabulary getWord(String query) {
-        Vocabulary vocabulary = new Vocabulary();
-        SQLiteQueryBuilder builder = new SQLiteQueryBuilder();
-        builder.setTables(FTS_VIRTUAL_TABLE);
-
-        SQLiteDatabase db = mDatabaseOpenHelper.getReadableDatabase();
-        String selection = COL_WORD + " = ?";
-        String[] selectionArgs = new String[] {query};
-        String[] columns=new String[]{COL_WORD,COL_DEFINITION};
-
-        Cursor cursor = builder.query(db, columns, selection, selectionArgs, null, null, null);
-        while(cursor.moveToNext()){
-            String word = cursor.getString(cursor.getColumnIndex("WORD"));
-            String definition = cursor.getString(cursor.getColumnIndex("DEFINITION"));
-            vocabulary=new Vocabulary(word,definition);
-        }
-        return vocabulary;
-    }
-}
-</code></pre>
-
-<p>然后就可以在SearchResultsActivity中使用该类，并把结果展示到界面中。
-先给SearchResultsActivity创建一个布局文件，这里只是一个简单的TextView，就不展示代码了。然后在handleIntent方法中加入以下代码：</p>
-
-<pre><code>Vocabulary vocabulary=db.getWord(query);
-if (vocabulary.getWord()==null){
-    textView.setText("没有匹配的数据...");
-}else {
-    textView.setText(vocabulary.getWord()+":"+vocabulary.getDefinition());
-}
-</code></pre>
-
-<p>这样就把搜索结果展示在界面中了。</p>
-
-<h3>
-<a id="下面说明searchview和listview结合的使用实现有道词典查询单词的效果" class="anchor" href="#%E4%B8%8B%E9%9D%A2%E8%AF%B4%E6%98%8Esearchview%E5%92%8Clistview%E7%BB%93%E5%90%88%E7%9A%84%E4%BD%BF%E7%94%A8%E5%AE%9E%E7%8E%B0%E6%9C%89%E9%81%93%E8%AF%8D%E5%85%B8%E6%9F%A5%E8%AF%A2%E5%8D%95%E8%AF%8D%E7%9A%84%E6%95%88%E6%9E%9C" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>下面说明SearchView和ListView结合的使用，实现有道词典查询单词的效果</h3>
-
-<p>现在MainActivity的布局文件中加入一个ListView：</p>
-
-<pre><code>&lt;ListView android:id="@+id/list"
+&lt;ListView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@id/android:list"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:drawSelectorOnTop="true"
     android:scrollbars="vertical" /&gt;
 </code></pre>
 
-<p>先给SearchView设置一个监听器，在搜索框的值改变时更新ListView的内容，在onCreateOptionsMenu中加入如下代码</p>
+<p>news.xml：定义新闻列表中每条新闻怎么显示</p>
 
-<pre><code>//给SearchView设置监听器，以便更新ListView的内容
-MenuItem searchItem = menu.findItem(R.id.search);
-searchView = (SearchView) searchItem.getActionView();
-searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() { //搜索时会触发这个事件搜索即可
-    @Override
-    public boolean onQueryTextSubmit(String query) {
-        return false;
-    }
-    @Override
-    public boolean onQueryTextChange(String newText) {
-        if(newText.length()!=0){
-            //当searchView的内容改变时，更新ListView
-            updateListView(newText);
-        }
-        return false;
-    }
-});
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"&gt;
+    &lt;TextView
+        android:id="@+id/newsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:textSize="20dp"
+        android:paddingLeft="5dp" /&gt;
+&lt;/LinearLayout&gt;
 </code></pre>
 
-<p>updateListView()中实现更新ListView</p>
+<p>drawable/tab_selector.xml：控制导航的背景显示</p>
 
-<pre><code>public void updateListView(String newText){
-    List&lt;Vocabulary&gt; vocabularies=db.getWordsMatches(newText);
-    words=new String[vocabularies.size()];
-    for (int i=0;i&lt;vocabularies.size();i++){
-        words[i]=vocabularies.get(i).getWord();
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;selector xmlns:android="http://schemas.android.com/apk/res/android" &gt;
+      &lt;item android:state_checked="true" &gt;&lt;!-- 选中状态 --&gt;
+        &lt;layer-list &gt;
+            &lt;item &gt;
+                &lt;shape android:shape="rectangle"&gt;
+                    &lt;stroke android:width="5dp"  android:color="#ff0000"/&gt;    
+                &lt;/shape&gt;
+            &lt;/item&gt;
+            &lt;item  android:bottom="5dp" &gt;
+                &lt;shape android:shape="rectangle" &gt;
+                     &lt;solid android:color="#fff"/&gt;
+                 &lt;/shape&gt;
+            &lt;/item&gt;
+        &lt;/layer-list&gt; 
+    &lt;/item&gt;
+    &lt;item &gt;&lt;!-- 默认状态 --&gt;
+        &lt;shape &gt;
+                &lt;solid  android:color="#FAFAFA"/&gt;
+        &lt;/shape&gt;
+    &lt;/item&gt;
+&lt;/selector&gt;
+</code></pre>
+
+<p>news_details.xml：定义新闻详细页面的显示</p>
+
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"&gt;
+    &lt;TextView
+        android:id="@+id/text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" /&gt;
+&lt;/LinearLayout&gt;
+</code></pre>
+
+<h4>
+<a id="然后来看看mainactivity先让mainactivity继承fragment类和onpagechangelistener接口" class="anchor" href="#%E7%84%B6%E5%90%8E%E6%9D%A5%E7%9C%8B%E7%9C%8Bmainactivity%E5%85%88%E8%AE%A9mainactivity%E7%BB%A7%E6%89%BFfragment%E7%B1%BB%E5%92%8Conpagechangelistener%E6%8E%A5%E5%8F%A3" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>然后来看看MainActivity，先让MainActivity继承Fragment类和OnPageChangeListener接口</h4>
+
+<pre><code>public class MainActivity extends FragmentActivity implements ViewPager.OnPageChangeListener  {
+    HorizontalScrollView horizontalScrollView;
+    RadioGroup radioGroup;
+    ViewPager viewPager;
+    List&lt;ChannelList&gt; channelLists;
+    private List&lt;ListFragment&gt; fragmentList=new ArrayList&lt;ListFragment&gt;();
+    private PageFragmentAdapter adapter=null;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        Button allCategory=(Button)findViewById(R.id.allCategory);
+        allCategory.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //下面实现展开所有分类功能
+                LinearLayout linearLayout=(LinearLayout)findViewById(R.id.allCategoryLayout);
+                if (linearLayout.getVisibility()==View.VISIBLE){
+                    linearLayout.setVisibility(View.INVISIBLE);
+                }else{
+                    linearLayout.setVisibility(View.VISIBLE);
+                }
+                //所有分类由GridView实现，里面由Button填充
+                GridView gridview = (GridView) findViewById(R.id.gridview);
+                ButtonAdapter adapter=new ButtonAdapter(MainActivity.this);
+                gridview.setAdapter(adapter);
+            }
+        });
+        horizontalScrollView=(HorizontalScrollView)findViewById(R.id.channelScrollView);
+        radioGroup=(RadioGroup)findViewById(R.id.channelRadioGroup);
+        viewPager=(ViewPager)findViewById(R.id.newsListViewPager);
+        //点击radioGroup中的item后更新viewPager
+        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                viewPager.setCurrentItem(checkedId);
+            }
+        });
+        //给ViewPager设置监听器，当viewPager滑动时会去执行onPageSelected中的函数
+        viewPager.setOnPageChangeListener(this);
+        initData();//获取数据
+        initTab();//初始化Tab
+        initViewPager();//初始化ViewPager
+        radioGroup.check(0);//初始化显示第一个channel
     }
-    ArrayAdapter&lt;String&gt; aadapter=new ArrayAdapter&lt;String&gt;(getApplicationContext(), android.R.layout.simple_expandable_list_item_1, words);
-    listView.setAdapter(aadapter);
+    //获取数据，实际情况是从数据库中获取
+    public void initData(){
+        channelLists=new ArrayList&lt;ChannelList&gt;();
+        channelLists.add(new ChannelList("头条", Arrays.asList(new News[]{new News("头条一"),new News("头条二")})));
+        channelLists.add(new ChannelList("娱乐", Arrays.asList(new News[]{new News("娱乐一"),new News("娱乐二")})));
+        channelLists.add(new ChannelList("体育", Arrays.asList(new News[]{new News("体育一"),new News("体育二")})));
+        channelLists.add(new ChannelList("财经", Arrays.asList(new News[]{new News("财经一"),new News("财经二")})));
+        channelLists.add(new ChannelList("科技", Arrays.asList(new News[]{new News("科技一"),new News("科技二")})));
+        channelLists.add(new ChannelList("汽车", Arrays.asList(new News[]{new News("汽车一"),new News("汽车二")})));
+        channelLists.add(new ChannelList("时尚", Arrays.asList(new News[]{new News("时尚一"),new News("时尚二")})));
+        channelLists.add(new ChannelList("社会", Arrays.asList(new News[]{new News("社会一"),new News("社会二")})));
+        channelLists.add(new ChannelList("热点", Arrays.asList(new News[]{new News("热点一"),new News("热点二")})));
+    }
+    public void initTab(){
+        for(int i=0;i&lt;channelLists.size();i++){
+            RadioButton rb=(RadioButton) LayoutInflater.from(this).inflate(R.layout.tab_rb, null);
+            rb.setId(i);
+            rb.setText(channelLists.get(i).getChannelName());
+            radioGroup.addView(rb);
+        }
+    }
+    public void initViewPager(){
+        for(int i=0;i&lt;channelLists.size();i++){
+            ListFragment frag=new NewsFragment();
+            Bundle bundle=new Bundle();
+            //把每个channelList传给Fragment
+            //bundle中可以放继承Serializable接口的类的实例
+            bundle.putSerializable("channelList",channelLists.get(i));
+            frag.setArguments(bundle);
+            fragmentList.add(frag);
+        }
+        //把fragmentList放到viewPage中
+        adapter=new PageFragmentAdapter(super.getSupportFragmentManager(),fragmentList);
+        viewPager.setAdapter(adapter);
+    }
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+    }
+    @Override
+    public void onPageSelected(int position) {
+        //当viewPager滑动时，更新上面的Tab目录状态
+        updateScorllView(position);
+    }
+    @Override
+    public void onPageScrollStateChanged(int state) {
+    }
+    public void updateScorllView(int position){
+        RadioButton rb=(RadioButton)radioGroup.getChildAt(position);
+        rb.setChecked(true);
+        int left=rb.getLeft();
+        int width=rb.getMeasuredWidth();
+        DisplayMetrics metrics=new DisplayMetrics();
+        super.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        int screenWidth=metrics.widthPixels;
+        int len=left+width/2-screenWidth/2;
+        horizontalScrollView.smoothScrollTo(len, 0);//滑动ScroollView
+    }
 }
 </code></pre>
 
-<p>最后给这个ListView添加一个监听器,点击每个item时把item的值作为搜索关键字</p>
+<h4>
+<a id="下面是两个实体类" class="anchor" href="#%E4%B8%8B%E9%9D%A2%E6%98%AF%E4%B8%A4%E4%B8%AA%E5%AE%9E%E4%BD%93%E7%B1%BB" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>下面是两个实体类</h4>
 
-<pre><code>listView=(ListView)findViewById(R.id.list);
-//给ListView设置监听器，点击每个item时把item的值作为搜索关键字
-listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-    @Override
-    public void onItemClick(AdapterView&lt;?&gt; parent, View view, int position, long id) {
-        String word=words[position];
-        searchView.setQuery(word,true);
+<p>新闻类：</p>
+
+<pre><code>public class News {
+    String title;
+    public News(String title) {
+        this.title = title;
     }
-});
+    public News() {
+    }
+    public String getTitle() {
+        return title;
+    }
+    @Override
+    public String toString() {
+        return "News{" +
+                "title='" + title + '\'' +
+                '}';
+    }
+    public void setTitle(String title) {
+        this.title = title;
+    }
+}
+</code></pre>
+
+<p>导航分类类；有两个属性——导航分类的名字和新闻列表（放该导航下的所有新闻），实现了Serializable接口，为了可以让该对象可以被加到Bundle中被传递</p>
+
+<pre><code>public class ChannelList implements Serializable {
+    String channelName;
+    List&lt;News&gt; newsList;
+    public String getChannelName() {
+        return channelName;
+    }
+    public void setChannelName(String channelName) {
+        this.channelName = channelName;
+    }
+    public List&lt;News&gt; getNewsList() {
+        return newsList;
+    }
+    public void setNewsList(List&lt;News&gt; newsList) {
+        this.newsList = newsList;
+    }
+    public ChannelList(String channelName, List&lt;News&gt; newsList) {
+        this.channelName = channelName;
+        this.newsList = newsList;
+    }
+}
+</code></pre>
+
+<h4>
+<a id="再来看看fragment类用来向viewpager中添加fragment" class="anchor" href="#%E5%86%8D%E6%9D%A5%E7%9C%8B%E7%9C%8Bfragment%E7%B1%BB%E7%94%A8%E6%9D%A5%E5%90%91viewpager%E4%B8%AD%E6%B7%BB%E5%8A%A0fragment" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>再来看看Fragment类，用来向ViewPager中添加fragment</h4>
+
+<pre><code>public class NewsFragment extends ListFragment {
+    private ChannelList channelList;
+    private View view;
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        if(view==null){//优化View减少View的创建次数
+                        //在每个Fragment中显示的内容
+            ListView listView=(ListView)LayoutInflater.from(getActivity()).inflate(R.layout.channel_layout,null);
+            ArrayList&lt;HashMap&lt;String, String&gt;&gt; list = new ArrayList&lt;HashMap&lt;String, String&gt;&gt;();
+            HashMap&lt;String, String&gt; map = new HashMap&lt;String, String&gt;();
+            //把每个分类下的新闻标题放到list中
+            for (int i=0;i&lt;channelList.getNewsList().size();i++){
+                map.put("news_title", channelList.getNewsList().get(i).getTitle());
+                list.add(map);
+                map=new HashMap&lt;String, String&gt;();
+            }
+            SimpleAdapter listAdapter = new SimpleAdapter(getActivity(), list,
+                    R.layout.news, new String[] { "news_title"},
+                    new int[] { R.id.newsTitle});
+            setListAdapter(listAdapter);
+            //View中的setTag（Object）表示给View添加一个格外的数据，以后可以用getTag()将这个数据取出来。
+            listView.setTag(channelList);
+            //设置fragment中的内容
+            view=listView;
+        }
+        ViewGroup parent=(ViewGroup)view.getParent();
+        if(parent!=null){//如果View已经添加到容器中，要进行删除，否则会报错
+            parent.removeView(view);
+        }
+        return view;
+    }
+    @Override
+    public void setArguments(Bundle bundle) {
+        // TODO Auto-generated method stub
+        channelList=(ChannelList)bundle.getSerializable("channelList");
+    }
+    @Override
+    public void onListItemClick(ListView l, View v, int position, long id) {
+        // TODO Auto-generated method stub
+        super.onListItemClick(l, v, position, id);
+        //当点击某条新闻标题时，跳转到新闻详细页面，传入分类名和新闻的Title
+        Intent intent=new Intent(getActivity(), NewsDetails.class);
+        intent.putExtra("channelName",((ChannelList)(l.getTag())).getChannelName());
+        intent.putExtra("newsTitle",((ChannelList)l.getTag()).getNewsList().get(position).getTitle());
+        startActivity(intent);
+    }
+}
+</code></pre>
+
+<h4>
+<a id="接下来看两个adapter" class="anchor" href="#%E6%8E%A5%E4%B8%8B%E6%9D%A5%E7%9C%8B%E4%B8%A4%E4%B8%AAadapter" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>接下来看两个adapter</h4>
+
+<p>PageFragmentAdapter——用来给Fragment添加内容，向ViewPager中添加fragment需要FragmentPagerAdapter，但它是个抽象类，所以需要有各类来继承它，这就取名PageFragmentAdapter</p>
+
+<pre><code>public class PageFragmentAdapter extends FragmentPagerAdapter {
+    private List&lt;ListFragment&gt; fragmentList;
+    private FragmentManager fm;
+    public PageFragmentAdapter(FragmentManager fm, List&lt;ListFragment&gt; fragmentList) {
+        super(fm);
+        // TODO Auto-generated constructor stub
+        this.fragmentList=fragmentList;
+        this.fm=fm;
+    }
+    @Override
+    public Fragment getItem(int idx) {
+        // TODO Auto-generated method stub
+        return (Fragment)(fragmentList.get(idx%fragmentList.size()));
+    }
+    @Override
+    public int getCount() {
+        // TODO Auto-generated method stub
+        return fragmentList.size();
+    }
+    @Override  
+    public int getItemPosition(Object object) {  
+       return POSITION_NONE;//没有找到child要求重新加载
+    }
+}
+</code></pre>
+
+<p>ButtonAdapter——该Adapter用来向所有分类中添加Button</p>
+
+<pre><code>public class ButtonAdapter extends BaseAdapter {
+    private Activity activity;
+    public ButtonAdapter(Activity c) {
+        activity = c;
+    }
+    public int getCount() {
+        return Buttons.length;
+    }
+    public Object getItem(int position) {
+        return null;
+    }
+    public long getItemId(int position) {
+        return position;
+    }
+    // create a new ImageView for each item referenced by the Adapter
+    public View getView(final int position, View convertView, ViewGroup parent) {
+        Button button;
+        if (convertView == null) {  // if it's not recycled, initialize some attributes
+            button = new Button(activity);
+        } else {
+            button = (Button) convertView;
+        }
+        button.setText(Buttons[position]);
+        button.setId(position);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ViewPager viewPager=(ViewPager)activity.findViewById(R.id.newsListViewPager);
+                viewPager.setCurrentItem(position);
+                LinearLayout linearLayout=(LinearLayout)activity.findViewById(R.id.allCategoryLayout);
+                linearLayout.setVisibility(View.INVISIBLE);
+            }
+        });
+        return button;
+    }
+    // references to our images
+    private String[] Buttons = {
+            "头条","娱乐","体育","财经","科技","汽车","时尚","社会","热点"
+    };
+}
+</code></pre>
+
+<h4>
+<a id="最后还有一个newsdetailsactivity用来显示新闻的详细信息需要加到manifest中" class="anchor" href="#%E6%9C%80%E5%90%8E%E8%BF%98%E6%9C%89%E4%B8%80%E4%B8%AAnewsdetailsactivity%E7%94%A8%E6%9D%A5%E6%98%BE%E7%A4%BA%E6%96%B0%E9%97%BB%E7%9A%84%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%E9%9C%80%E8%A6%81%E5%8A%A0%E5%88%B0manifest%E4%B8%AD" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>最后，还有一个NewsDetailsActivity——用来显示新闻的详细信息，需要加到manifest中</h4>
+
+<pre><code>public class NewsDetailsActivity extends Activity {
+    private TextView textView;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.news_details);
+        Intent intent=getIntent();
+        String channelName=intent.getStringExtra("channelName");
+        String newsTitle=intent.getStringExtra("newsTitle");
+        textView=(TextView)findViewById(R.id.text);
+        textView.setText("分类："+channelName+" 新闻："+newsTitle);
+    }
+}
 </code></pre>
 
       <footer class="site-footer">
